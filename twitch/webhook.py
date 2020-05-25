@@ -23,7 +23,7 @@ MIT License
  """
 from abc import ABC, abstractmethod
 from typing import Optional, List, Tuple, Union, TYPE_CHECKING
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse, parse_qsl
 
 if TYPE_CHECKING:
     from .client import Client
@@ -53,6 +53,10 @@ class Topic(ABC):
 
     __slots__ = ()
 
+    @abstractmethod
+    def __init__(self, *args, **kwargs):
+        pass
+
     @property
     def _params(self) -> List[Tuple[str, Union[str, int]]]:
         return [
@@ -69,6 +73,10 @@ class Topic(ABC):
     def uri(self):
         raise NotImplemented
 
+    @classmethod
+    def from_uri(cls, uri: str):
+        return cls(**dict(parse_qsl(urlparse(uri).query)))
+
 
 class ChannelBanChangeEvents(Topic):
     """Notifies when a broadcaster bans or un-bans people in their channel.
@@ -77,6 +85,8 @@ class ChannelBanChangeEvents(Topic):
     -----------
     broadcaster_id : str
         User ID of the broadcaster.
+    first : int
+        Must be 1.
     user_id : Optional[str]
         Specifies the user ID of the moderator added or removed.
 
@@ -84,9 +94,12 @@ class ChannelBanChangeEvents(Topic):
 
     __slots__ = ("broadcaster_id", "first", "user_id")
 
-    def __init__(self, broadcaster_id: str, user_id: Optional[str] = None):
+    def __init__(
+            self, broadcaster_id: str, first: int = 1, user_id: Optional[str] = None
+    ):
+        super().__init__()
         self.broadcaster_id = broadcaster_id
-        self.first = 1
+        self.first = first
         self.user_id = user_id
 
     @property
@@ -101,14 +114,17 @@ class ExtensionTransactionCreated(Topic):
     -----------
     extension_id : str
         ID of the extension to listen to for transactions.
+    first : int
+        Must be 1.
 
     """
 
     __slots__ = ("extension_id", "first")
 
-    def __init__(self, extension_id: str):
+    def __init__(self, extension_id: str, first: int = 1):
+        super().__init__()
         self.extension_id = extension_id
-        self.first = 1
+        self.first = first
 
     @property
     def uri(self) -> str:
@@ -122,6 +138,8 @@ class ModeratorChangeEvents(Topic):
     -----------
     broadcaster_id : str
         User ID of the broadcaster.
+    first : int
+        Must be 1.
     user_id : Optional[str]
         Specifies the user ID of the moderator added or removed.
 
@@ -129,9 +147,12 @@ class ModeratorChangeEvents(Topic):
 
     __slots__ = ("broadcaster_id", "first", "user_id")
 
-    def __init__(self, broadcaster_id: str, user_id: Optional[str] = None):
+    def __init__(
+            self, broadcaster_id: str, first: int = 1, user_id: Optional[str] = None
+    ):
+        super().__init__()
         self.broadcaster_id = broadcaster_id
-        self.first = 1
+        self.first = first
         self.user_id = user_id
 
     @property
@@ -153,6 +174,7 @@ class StreamChanged(Topic):
     __slots__ = ("user_id",)
 
     def __init__(self, user_id: str):
+        super().__init__()
         self.user_id = user_id
 
     @property
@@ -174,6 +196,8 @@ class SubscriptionEvents(Topic):
     -----------
     broadcaster_id : str
         User ID of the broadcaster. Must match the User ID in the Bearer token.
+    first : int
+        Must be 1.
     user_id : Optional[str]
         ID of the subscribed user.
     gifter_id : Optional[str]
@@ -187,14 +211,16 @@ class SubscriptionEvents(Topic):
     __slots__ = ("broadcaster_id", "first", "user_id", "gifter_id", "gifter_name")
 
     def __init__(
-        self,
-        broadcaster_id: str,
-        user_id: Optional[str] = None,
-        gifter_id: Optional[str] = None,
-        gifter_name: Optional[str] = None,
+            self,
+            broadcaster_id: str,
+            first: int = 1,
+            user_id: Optional[str] = None,
+            gifter_id: Optional[str] = None,
+            gifter_name: Optional[str] = None,
     ):
+        super().__init__()
         self.broadcaster_id = broadcaster_id
-        self.first = 1
+        self.first = first
         self.user_id = user_id
         self.gifter_id = gifter_id
         self.gifter_name = gifter_name
@@ -221,6 +247,7 @@ class UserChanged(Topic):
     __slots__ = ("id",)
 
     def __init__(self, id: str):
+        super().__init__()
         self.id = id
 
     @property
@@ -237,6 +264,8 @@ class UserFollows(Topic):
 
     Attributes
     -----------
+    first : int
+        Must be 1.
     from_id : Optional[str]
         Specifies the user who starts following someone.
     to_id : Optional[str]
@@ -246,11 +275,12 @@ class UserFollows(Topic):
 
     __slots__ = ("first", "from_id", "to_id")
 
-    def __init__(self, from_id: Optional[int] = None, to_id: Optional[int] = None):
+    def __init__(self, first: int = 1, from_id: Optional[int] = None, to_id: Optional[int] = None):
+        super().__init__()
         if from_id is None and to_id is None:
             raise TypeError("'from_id' and/or 'to_id' must be specified.")
 
-        self.first = 1
+        self.first = first
         self.from_id = from_id
         self.to_id = to_id
 
@@ -290,12 +320,12 @@ class Subscription:
     __slots__ = ("client", "callback", "topic", "lease_seconds", "secret")
 
     def __init__(
-        self,
-        client: "Client",
-        callback: str,
-        topic: Topic,
-        lease_seconds: int = 0,
-        secret: Optional[str] = None,
+            self,
+            client: "Client",
+            callback: str,
+            topic: Topic,
+            lease_seconds: int = 0,
+            secret: Optional[str] = None,
     ):
         self.client = client
         self.callback = callback
