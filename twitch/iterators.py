@@ -31,6 +31,8 @@ from .stream import Stream
 from .user import User
 from .utils import chunks
 
+__all__ = ("GameIterator", "StreamIterator", "UserIterator")
+
 
 class _AsyncIterator(AsyncIterator):
     async def __anext__(self) -> Any:
