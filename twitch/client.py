@@ -1,4 +1,3 @@
-import asyncio
 from contextlib import suppress
 from typing import List, Optional
 
@@ -17,14 +16,9 @@ class Client:
     BASE_URL = "https://api.twitch.tv/helix"
 
     def __init__(
-        self,
-        client_id: str,
-        token: str,
-        session: Optional[aiohttp.ClientSession] = None,
+        self, client_id: str, token: str = None, session: Optional[aiohttp.ClientSession] = None,
     ):
-        self.loop = asyncio.get_event_loop()
-        session = session or aiohttp.ClientSession()
-        self.http = HTTPClient(client_id, token, session)
+        self.http = HTTPClient(client_id, session, token=token)
 
     def get_games(
         self, ids: Optional[List[str]] = None, names: Optional[List[str]] = None,
@@ -123,11 +117,7 @@ class Client:
             if user_id:
                 return await self.get_streams(limit=1).filter(user_ids=[user_id]).next()
             elif user_login:
-                return (
-                    await self.get_streams(limit=1)
-                    .filter(user_logins=[user_login])
-                    .next()
-                )
+                return await self.get_streams(limit=1).filter(user_logins=[user_login]).next()
         return None
 
     def get_users(
@@ -179,11 +169,7 @@ class Client:
         return None
 
     def create_subscription(
-        self,
-        callback: str,
-        topic: Topic,
-        lease_seconds: int = 0,
-        secret: Optional[str] = None,
+        self, callback: str, topic: Topic, lease_seconds: int = 0, secret: Optional[str] = None,
     ):
         """Subscribe to events for a specified topic.
 

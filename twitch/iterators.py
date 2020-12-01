@@ -50,10 +50,7 @@ class _AsyncIterator(AsyncIterator):
 
 class GameIterator(_AsyncIterator):
     def __init__(
-        self,
-        client,
-        ids: Optional[List[str]] = None,
-        names: Optional[List[str]] = None,
+        self, client, ids: Optional[List[str]] = None, names: Optional[List[str]] = None,
     ):
         if ids is None and names is None:
             raise TypeError("Missing one of positional arguments: 'ids', 'names'")
@@ -138,9 +135,7 @@ class StreamIterator(_AsyncIterator):
 
     async def fill_streams(self):
         if self._get_retrieve():
-            resp = await self.get_streams(
-                first=self.retrieve, after=self._cursor, **self._filter
-            )
+            resp = await self.get_streams(first=self.retrieve, after=self._cursor, **self._filter)
             data = resp["data"]
             if len(data) < 100:
                 self.limit = 0
@@ -155,10 +150,7 @@ class StreamIterator(_AsyncIterator):
 
 class UserIterator(_AsyncIterator):
     def __init__(
-        self,
-        client,
-        ids: Optional[List[str]] = None,
-        logins: Optional[List[str]] = None,
+        self, client, ids: Optional[List[str]] = None, logins: Optional[List[str]] = None,
     ):
         self.client = client
         self.ids = chunks(list(set(ids)), 100) if ids else None

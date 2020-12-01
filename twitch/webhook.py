@@ -94,9 +94,7 @@ class ChannelBanChangeEvents(Topic):
 
     __slots__ = ("broadcaster_id", "first", "user_id")
 
-    def __init__(
-            self, broadcaster_id: str, first: int = 1, user_id: Optional[str] = None
-    ):
+    def __init__(self, broadcaster_id: str, first: int = 1, user_id: Optional[str] = None):
         super().__init__()
         self.broadcaster_id = broadcaster_id
         self.first = first
@@ -147,9 +145,7 @@ class ModeratorChangeEvents(Topic):
 
     __slots__ = ("broadcaster_id", "first", "user_id")
 
-    def __init__(
-            self, broadcaster_id: str, first: int = 1, user_id: Optional[str] = None
-    ):
+    def __init__(self, broadcaster_id: str, first: int = 1, user_id: Optional[str] = None):
         super().__init__()
         self.broadcaster_id = broadcaster_id
         self.first = first
@@ -211,12 +207,12 @@ class SubscriptionEvents(Topic):
     __slots__ = ("broadcaster_id", "first", "user_id", "gifter_id", "gifter_name")
 
     def __init__(
-            self,
-            broadcaster_id: str,
-            first: int = 1,
-            user_id: Optional[str] = None,
-            gifter_id: Optional[str] = None,
-            gifter_name: Optional[str] = None,
+        self,
+        broadcaster_id: str,
+        first: int = 1,
+        user_id: Optional[str] = None,
+        gifter_id: Optional[str] = None,
+        gifter_name: Optional[str] = None,
     ):
         super().__init__()
         self.broadcaster_id = broadcaster_id
@@ -320,12 +316,12 @@ class Subscription:
     __slots__ = ("client", "callback", "topic", "lease_seconds", "secret")
 
     def __init__(
-            self,
-            client: "Client",
-            callback: str,
-            topic: Topic,
-            lease_seconds: int = 0,
-            secret: Optional[str] = None,
+        self,
+        client: "Client",
+        callback: str,
+        topic: Topic,
+        lease_seconds: int = 0,
+        secret: Optional[str] = None,
     ):
         self.client = client
         self.callback = callback

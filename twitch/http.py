@@ -77,18 +77,29 @@ class MaybeUnlock:
 
 
 class HTTPClient:
-    def __init__(
-        self, client_id: str, token: str, session: aiohttp.ClientSession
-    ):
+    def __init__(self, client_id: str, session: aiohttp.ClientSession, token: str = None):
         self.client_id = client_id
         self.token = token
         self.loop = asyncio.get_event_loop()
-        self._session = session
+        self._session = session or aiohttp.ClientSession()
         self._locks = weakref.WeakValueDictionary()
         atexit.register(self._close)
 
     def _close(self):
         self.loop.run_until_complete(self._session.close())
+
+    async def get_token(self, client_secret: str):
+        response = await self._session.post(
+            "https://id.twitch.tv/oauth2/token",
+            params={
+                "client_id": self.client_id,
+                "client_secret": client_secret,
+                "grant_type": "client_credentials",
+            },
+        )
+        response_body = await response.json()
+        self.token = response_body["access_token"]
+        return self.token
 
     async def request(self, route: Route, **kwargs):
         method = route.method
@@ -99,7 +110,9 @@ class HTTPClient:
             lock = asyncio.Lock()
             self._locks[route_hash] = lock
 
-        headers = {"Client-ID": self.client_id, "Authorization": f"Bearer {self.token}"}
+        headers = {"Client-ID": self.client_id}
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
         kwargs["headers"] = headers
         kwargs["params"] = route.params
 
@@ -111,9 +124,7 @@ class HTTPClient:
                     remaining = r.headers.get("Ratelimit-Remaining")
                     if remaining == "0" and r.status != 429:
                         now = dt.datetime.utcnow()
-                        reset = dt.datetime.utcfromtimestamp(
-                            float(r.headers["Ratelimit-Reset"])
-                        )
+                        reset = dt.datetime.utcfromtimestamp(float(r.headers["Ratelimit-Reset"]))
                         delta = (reset - now).total_seconds()
                         maybe_lock.defer()
                         self.loop.call_later(delta, lock.release)
@@ -170,11 +181,7 @@ class HTTPClient:
         return self.request(Route("GET", "/users", params))
 
     def subscribe_to_events(
-        self,
-        callback: str,
-        topic: str,
-        lease_seconds: int,
-        secret: Optional[str] = None,
+        self, callback: str, topic: str, lease_seconds: int, secret: Optional[str] = None,
     ):
         params = {
             "hub.callback": callback,
@@ -187,11 +194,7 @@ class HTTPClient:
         return self.request(Route("POST", "/webhooks/hub", list(params.items())))
 
     def unsubscribe_from_events(
-        self,
-        callback: str,
-        topic: str,
-        lease_seconds: int,
-        secret: Optional[str] = None,
+        self, callback: str, topic: str, lease_seconds: int, secret: Optional[str] = None,
     ):
         params = {
             "hub.callback": callback,
