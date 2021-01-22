@@ -1,8 +1,6 @@
 from contextlib import suppress
 from typing import List, Optional
 
-import aiohttp
-
 from .errors import NoMoreItems
 from .game import Game
 from .http import HTTPClient
@@ -15,10 +13,8 @@ from .webhook import *
 class Client:
     BASE_URL = "https://api.twitch.tv/helix"
 
-    def __init__(
-        self, client_id: str, token: str = None, session: Optional[aiohttp.ClientSession] = None,
-    ):
-        self.http = HTTPClient(client_id, session, token=token)
+    def __init__(self, client_id: str, client_secret: str = None):
+        self.http = HTTPClient(client_id, client_secret)
 
     def get_games(
         self, ids: Optional[List[str]] = None, names: Optional[List[str]] = None,

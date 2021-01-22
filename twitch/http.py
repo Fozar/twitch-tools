@@ -77,29 +77,29 @@ class MaybeUnlock:
 
 
 class HTTPClient:
-    def __init__(self, client_id: str, session: aiohttp.ClientSession, token: str = None):
-        self.client_id = client_id
-        self.token = token
+    def __init__(self, client_id: str, client_secret: str):
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._token = None
         self.loop = asyncio.get_event_loop()
-        self._session = session or aiohttp.ClientSession()
+        self._session = aiohttp.ClientSession()
         self._locks = weakref.WeakValueDictionary()
         atexit.register(self._close)
 
     def _close(self):
         self.loop.run_until_complete(self._session.close())
 
-    async def get_token(self, client_secret: str):
+    async def _get_token(self):
         response = await self._session.post(
             "https://id.twitch.tv/oauth2/token",
             params={
-                "client_id": self.client_id,
-                "client_secret": client_secret,
+                "client_id": self._client_id,
+                "client_secret": self._client_secret,
                 "grant_type": "client_credentials",
             },
         )
         response_body = await response.json()
-        self.token = response_body["access_token"]
-        return self.token
+        return response_body["access_token"]
 
     async def request(self, route: Route, **kwargs):
         method = route.method
@@ -110,15 +110,15 @@ class HTTPClient:
             lock = asyncio.Lock()
             self._locks[route_hash] = lock
 
-        headers = {"Client-ID": self.client_id}
-        if self.token:
-            headers["Authorization"] = f"Bearer {self.token}"
-        kwargs["headers"] = headers
-        kwargs["params"] = route.params
+        if not self._token:
+            self._token = await self._get_token()
 
         await lock.acquire()
         with MaybeUnlock(lock) as maybe_lock:
             for attempt in range(5):
+                headers = {"Client-ID": self._client_id, "Authorization": f"Bearer {self._token}"}
+                kwargs["headers"] = headers
+                kwargs["params"] = route.params
                 async with self._session.request(method, url, **kwargs) as r:
                     data = await json_or_text(r)
                     remaining = r.headers.get("Ratelimit-Remaining")
@@ -133,6 +133,9 @@ class HTTPClient:
                         return data
                     elif r.status in {429, 500, 502, 503}:
                         await asyncio.sleep(1 + attempt * 2)
+                        continue
+                    elif r.status == 403:
+                        self._token = await self._get_token()
                         continue
                     else:
                         raise HTTPException(r, data)
