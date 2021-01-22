@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="twitch-tools",
-    version="0.3.0",
+    version="0.4.0",
     packages=["twitch"],
     url="https://github.com/Fozar/twitch-tools",
     license="MIT",
